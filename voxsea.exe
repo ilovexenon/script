@@ -1,1 +1,876 @@
-awdawd
+local Mapname = 'xesonzhub_VoxSea'
+
+do
+    if game.CoreGui:FindFirstChild('ScreenGui') then
+        Fluent:Destroy()
+    end
+
+    _G.Setting_table = {
+        Save_Member = true
+    }
+    _G.Check_Save_Setting = "CheckSaveSetting"
+
+    getgenv()['JsonEncode'] = function(msg)
+        return game:GetService("HttpService"):JSONEncode(msg)
+    end
+    getgenv()['JsonDecode'] = function(msg)
+        return game:GetService("HttpService"):JSONDecode(msg)
+    end
+    getgenv()['Check_Setting'] = function(Name)
+        if not _G.Dis and not isfolder(Mapname) then
+            makefolder(Mapname)
+        end
+        if not _G.Dis and not isfile(Mapname.."/"..Name..'.json') then
+            writefile(Mapname.."/"..Name..'.json',JsonEncode(_G.Setting_table))
+        end
+    end
+    getgenv()['Get_Setting'] = function(Name)
+        if not _G.Dis and isfolder(Mapname) and isfile(Mapname.."/"..Name..'.json') then
+            _G.Setting_table = JsonDecode(readfile(Mapname.."/"..Name..'.json'))
+            return _G.Setting_table
+        elseif not _G.Dis then
+            Check_Setting(Name)
+        end
+    end
+    getgenv()['Update_Setting'] = function(Name)
+        if not _G.Dis and isfolder(Mapname) and isfile(Mapname.."/"..Name..'.json') then
+            writefile(Mapname.."/"..Name..'.json',JsonEncode(_G.Setting_table))
+        elseif not _G.Dis then
+            Check_Setting(Name)
+        end
+    end
+
+    Check_Setting(_G.Check_Save_Setting)
+    Get_Setting(_G.Check_Save_Setting)
+
+    if _G.Setting_table.Save_Member then
+        getgenv()['MyName'] = game.Players.LocalPlayer.Name
+    elseif _G.Setting_table.Save_All_Member then
+        getgenv()['MyName'] = "AllMember"
+    else
+        getgenv()['MyName'] = "None"
+        _G.Dis = true
+    end
+
+    Check_Setting(getgenv()['MyName'])
+    Get_Setting(getgenv()['MyName'])
+
+    _G.Setting_table.Key = _G.wl_key
+    Update_Setting(getgenv()['MyName'])
+
+    if _G.Setting_table == nil then
+        _G.Setting_table = {}
+    end
+
+    function update(f ,callback)
+        if _G.Setting_table[f] == nil then
+            _G.Setting_table[f] = callback
+        end
+    end
+end -- savefunction
+
+local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2Kalimakx/xesonz/refs/heads/main/fluent.exe"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+local FluentAll = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2Kalimakx/xesonz/refs/heads/main/onoff.exe"))()
+local GameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+local NameP = game.Players.LocalPlayer.Name
+
+local Window = Fluent:CreateWindow({
+    Title = GameName,
+    SubTitle = "by Xesonz Hub",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(500, 380),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+})
+
+local Tabs = {
+    General_Tab = Window:AddTab({ Title = "General", Icon = "layout-grid" }),
+    Stats = Window:AddTab({ Title = "Stats", Icon = "align-left" }),
+    Teleport_Tab = Window:AddTab({ Title = "Teleport", Icon = "map-pin" }),
+    Shop_Tab = Window:AddTab({ Title = "Shop", Icon = "shopping-cart" }),
+}
+
+Window:SelectTab(1)
+
+local Options = Fluent.Options
+
+do
+    Tabs.General_Tab:AddSection("Farm Level")
+    local Weaponlist = {}
+    for i,v in pairs(game:GetService("Players").LocalPlayer.Backpack:GetChildren()) do  
+        if v:IsA("Tool") then
+            table.insert(Weaponlist,v.Name)
+        end
+    end
+    for i,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do  
+        if v:IsA("Tool") then
+        table.insert(Weaponlist, v.Name)
+        end
+    end
+    local SelectWeapon = Tabs.General_Tab:AddDropdown("Dropdown", {
+        Title = "Select Weapon",
+        Values = Weaponlist,
+        Multi = false,
+        Default = "None",
+        Callback = function (vu)
+            selectWeapon = vu
+    end})
+
+    local function RefreshWeaponList()
+        local Weaponlist = {}
+        for i,v in pairs(game:GetService("Players").LocalPlayer.Backpack:GetChildren()) do  
+            if v:IsA("Tool") then
+                table.insert(Weaponlist,v.Name)
+            end
+        end
+        for i,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do  
+            if v:IsA("Tool") then
+            table.insert(Weaponlist, v.Name)
+            end
+        end
+        SelectWeapon:SetValues(Weaponlist)
+    end
+    Tabs.General_Tab:AddButton({
+        Title = "Refresh Weapon",
+        Description = "",
+        Callback = function()
+            RefreshWeaponList()
+            Fluent:Notify({
+                Title = "Notification!",
+                Content = "Already Refresh Weapon",
+                SubContent = "",
+                Duration = 3
+            })
+        end
+    })
+    Tabs.General_Tab:AddToggle("MyToggle",{
+        Title = "Auto Farm", 
+        Description = "Auto Farm Level [1-Max]",
+        Default = false,
+        Callback = function(vu)
+            autoFarm = vu
+    end})
+end -- General
+
+do
+    Tabs.Teleport_Tab:AddSection("Teleport")
+    local island = {}
+    for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+        table.insert(island, v.Name)
+    end
+    Tabs.Teleport_Tab:AddDropdown("Dropdown", {
+        Title = "Select Location",
+        Values = island,
+        Multi = false,
+        Default = "None",
+        Callback = function (vu)
+            selectLocation = vu
+    end})
+    Tabs.Teleport_Tab:AddDropdown("Dropdown", {
+        Title = "Select Mode",
+        Values = {"Tween Mode", "Bypass Mode"},
+        Multi = false,
+        Default = "Tween Mode",
+        Callback = function (vu)
+            selectMode = vu
+    end})
+    Tabs.Teleport_Tab:AddToggle("MyToggle",{
+        Title = "Teleport To Location", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            autoTeleport = vu
+    end})
+end -- teleport
+
+do
+    Tabs.Stats:AddSection("Stats")
+    Tabs.Stats:AddToggle("MyToggle",{
+        Title = "Upgrade Defense Stat", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            addDefense = vu
+    end})
+    Tabs.Stats:AddToggle("MyToggle",{
+        Title = "Upgrade Sword Stat", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            addSword = vu
+    end})
+    Tabs.Stats:AddToggle("MyToggle",{
+        Title = "Upgrade Gun Stat", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            addGun = vu
+    end})
+    Tabs.Stats:AddToggle("MyToggle",{
+        Title = "Upgrade Strength Stat", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            addStrength = vu
+    end})
+    Tabs.Stats:AddToggle("MyToggle",{
+        Title = "Upgrade DevilFruit Stat", 
+        Description = "",
+        Default = false,
+        Callback = function(vu)
+            addDevilFruit = vu
+    end})
+end -- stats
+
+do
+    Tabs.Shop_Tab:AddSection("FightingStyle")
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Dark Step",
+        Description = "[Price 30K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Dark Step")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Electric",
+        Description = "[Price 300K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Electric")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Water Kung-Fu",
+        Description = "[Price 500K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Water Kung-Fu")
+        end
+    })
+
+    Tabs.Shop_Tab:AddSection("Gun")
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Slingshot",
+        Description = "[Price 5K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Slingshot")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Musket",
+        Description = "[Price 8K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Musket")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Flintlock",
+        Description = "[Price 10.5K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Flintlock")
+        end
+    })
+
+    Tabs.Shop_Tab:AddSection("Sword")
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Katana",
+        Description = "[Price 500]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Katana")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Cutlass",
+        Description = "[Price 500]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Cutlass")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Dual Katana",
+        Description = "[Price 5K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Dual Katana")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Dual Blade",
+        Description = "[Price 150K]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Dual Blade")
+        end
+    })
+    Tabs.Shop_Tab:AddButton({
+        Title = "Buy Bisento",
+        Description = "[Price 1M]",
+        Callback = function()
+            game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("DialogueEvent"):FireServer("InsertShop","Bisento")
+        end
+    })
+end -- shop
+
+do
+    function TweenFarm(gotoCFrame)
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid.Sit = false
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Anchored = false
+            end)
+                if (game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.Position - gotoCFrame.Position).Magnitude <= 30 then
+                    pcall(function() 
+                        tweenz:Cancel()
+                    end)
+                    game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.CFrame = gotoCFrame
+                else
+                local tween_s = game:service"TweenService"
+                local info = TweenInfo.new((game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.Position - gotoCFrame.Position).Magnitude/280, Enum.EasingStyle.Linear)
+                tween, err = pcall(function()
+                tweenz = tween_s:Create(game.Players.LocalPlayer.Character["HumanoidRootPart"], info, {CFrame = gotoCFrame})
+                tweenz:Play()
+            end)
+        if not tween then return err end
+        end
+        function TweenCanCle()
+            tweenz:Cancel()
+        end
+    end -- tweenfarm
+    function TweenToLocation(gotoCFrame)
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid.Sit = false
+            game.Players.LocalPlayer.Character.HumanoidRootPart.Anchored = false
+            end)
+                if (game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.Position - gotoCFrame.Position).Magnitude <= 30 then
+                    pcall(function() 
+                        tweenlocate:Cancel()
+                    end)
+                    game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.CFrame = gotoCFrame
+                else
+                local tween_s = game:service"TweenService"
+                local info = TweenInfo.new((game:GetService("Players")["LocalPlayer"].Character.HumanoidRootPart.Position - gotoCFrame.Position).Magnitude/280, Enum.EasingStyle.Linear)
+                tween, err = pcall(function()
+                tweenlocate = tween_s:Create(game.Players.LocalPlayer.Character["HumanoidRootPart"], info, {CFrame = gotoCFrame})
+                tweenlocate:Play()
+            end)
+        if not tween then return err end
+        end
+        function TweenCanCleLocation()
+            tweenlocate:Cancel()
+        end
+    end -- tween
+    function Click()
+        game:GetService'VirtualUser':CaptureController()
+    	game:GetService'VirtualUser':Button1Down(Vector2.new(1280, 672))
+    end
+    function ByPass(Position)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Position
+        wait(1.75)
+        game.Players.LocalPlayer.Character.Head:Destroy()
+    end -- bypass
+    function EquipWeapon(ToolSe)
+        if game.Players.LocalPlayer.Backpack:FindFirstChild(ToolSe) then
+            Tool = game.Players.LocalPlayer.Backpack:WaitForChild(ToolSe)
+            wait()
+            game.Players.LocalPlayer.Character.Humanoid:EquipTool(Tool)
+            wait(0.10)
+        end
+    end
+end -- function
+
+function QuestCheck()
+    local TextLevel = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.StastisticsFrame.BaseFrame.Level.Text
+    local Lv = tonumber(TextLevel)
+    if Lv == 1 or Lv <= 24 then
+        IslandMon = "Foosha Village"
+        NameMon = "Bandit"
+        NpcName = "Bandits Hunter"
+        QuestName = "Defeat Bandits"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 25 or Lv <= 49 then
+        IslandMon = "Werewolf's Island"
+        NameMon = "Shadow Werewolf"
+        NpcName = "Mark Hunter"
+        QuestName = "Defeat Shadow Werewolfs"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 50 or Lv <= 99 then
+        IslandMon = "Werewolf's Island"
+        NameMon = "Forest Hunter"
+        NpcName = "Mark Hunter"
+        QuestName = "Defeat Forest Hunters"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 100 or Lv <= 124 then
+        IslandMon = "Orange Town"
+        NameMon = "Pirate Bill"
+        NpcName = "Joy Pirate Hunter"
+        QuestName = "Defeat Pirate Bills"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 125 or Lv <= 174 then
+        IslandMon = "Orange Town"
+        NameMon = "Pirate Officer"
+        NpcName = "Joy Pirate Hunter"
+        QuestName = "Defeat Pirate Officer"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 175 or Lv <= 199 then
+        IslandMon = "Sandstorm Island"
+        NameMon = "Desert Bandit"
+        NpcName = "Paul"
+        QuestName = "Defeat Desert Bandits"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 200 or Lv <= 249 then
+        IslandMon = "Sandstorm Island"
+        NameMon = "Desert Guardian"
+        NpcName = "Paul"
+        QuestName = "Defeat Desert Guardians"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 250 or Lv <= 274 then
+        IslandMon = "Frost Island"
+        NameMon = "Frozen Warrior"
+        NpcName = "Ryan Snow"
+        QuestName = "Defeat Frozen Warriors"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 275 or Lv <= 324 then
+        IslandMon = "Frost Island"
+        NameMon = "Winter Soldier"
+        NpcName = "Ryan Snow"
+        QuestName = "Defeat Winter Soldiers"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 325 or Lv <= 399 then
+        IslandMon = "Marine Ford"
+        NameMon = "Marine Officer"
+        NpcName = "Olliver"
+        QuestName = "Defeat Marine Officers"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 400 or Lv <= 424 then
+        IslandMon = "Skypie Down"
+        NameMon = "Celestial Bandit"
+        NpcName = "Pedro"
+        QuestName = "Defeat Celestial Bandits"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 425 or Lv <= 474 then
+        IslandMon = "Skypie Down"
+        NameMon = "Shadow Master"
+        NpcName = "Pedro"
+        QuestName = "Defeat Shadow Masters"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 475 or Lv <= 574 then
+        IslandMon = "Prison"
+        Isl = "Prision"
+        NameMon = "Dangerous Prisoner"
+        NpcName = "Jonas"
+        QuestName = "Defeat Dangerous Prisoners"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == Isl then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 575 or Lv <= 599 then
+        IslandMon = "Coliseum"
+        NameMon = "Veteran Gladiator"
+        NpcName = "Dex"
+        QuestName = "Defeat Veteran Gladiators"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 600 or Lv <= 624 then
+        IslandMon = "Coliseum"
+        NameMon = "Veteran Warrior"
+        NpcName = "Dex"
+        QuestName = "Defeat Veteran Warrior"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 625 or Lv <= 649 then
+        IslandMon = "Vulcan Island"
+        IslandName = "Vulcan"
+        CFrameIs = CFrame.new(4063.32617, -1397.60022, -8072.06934, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        NameMon = "Magma Soldier"
+        NpcName = "Clay"
+        QuestName = "Defeat Magma Soldiers"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandName then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1500 then
+                    game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("LocationEvent"):FireServer("NewLocation","Ashforge Bastion")
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 650 or Lv <= 699 then
+        IslandMon = "Vulcan Island"
+        IslandName = "Vulcan"
+        NameMon = "Magma Spy"
+        NpcName = "Clay"
+        QuestName = "Defeat Magma Spys"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandName then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1500 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 700 or Lv <= 724 then
+        IslandMon = "Sharkman Park"
+        NameMon = "Fishman"
+        NpcName = "King Tritan"
+        QuestName = "Defeat Fishmans"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 725 or Lv <= 774 then
+        IslandMon = "Sharkman Park"
+        NameMon = "Triton Warrior"
+        NpcName = "King Tritan"
+        QuestName = "Defeat Triton Warriors"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 775 or Lv <= 799 then
+        IslandMon = "Skypie Upper"
+        NameMon = "Divine Guardian"
+        NpcName = "Jhon"
+        QuestName = "Defeat Divine Guardians"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 800 or Lv <= 849 then
+        IslandMon = "Skypie Upper"
+        NameMon = "Shanda"
+        NpcName = "Jhon"
+        QuestName = "Defeat Shandas"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 850 or Lv <= 874 then
+        IslandMon = "Skypie Upper"
+        NameMon = "Royal Squadron"
+        NpcName = "Same"
+        QuestName = "Defeat Royal Squadrons"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 875 or Lv <= 924 then
+        IslandMon = "Skypie Upper"
+        NameMon = "Royal Soldier"
+        NpcName = "Same"
+        QuestName = "Defeat Royal Soldier"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 925 or Lv <= 949 then
+        IslandMon = "Fountain"
+        NameMon = "Pirate Fighter"
+        NpcName = "Arthur"
+        QuestName = "Defeat Pirate Fighters"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 950 or Lv <= 999 then
+        IslandMon = "Fountain"
+        NameMon = "Pirate Henchman"
+        NpcName = "Arthur"
+        QuestName = "Defeat Pirate Henchmans"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 1000 or Lv <= 1024 then
+        IslandMon = "Fountain"
+        NameMon = "Experiment #13"
+        NpcName = "Scientist"
+        QuestName = "Defeat Experiment #13"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    elseif Lv == 1025 or Lv <= 1099 then
+        IslandMon = "Fountain"
+        NameMon = "Experiment #14"
+        NpcName = "Scientist"
+        QuestName = "Defeat Experiment #14"
+        for i,v in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+            if v.Name == IslandMon then
+                if autoFarm and (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude > 1000 then
+                    ByPass(v.CFrame)
+                end
+            end
+        end
+    end
+end
+
+function MagX(MagDis)
+    if MagZ then
+        return MagZ(MagDis)
+    else
+        return (MagDis.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 200
+    end
+end
+function BringMob(pos)
+    QuestCheck()
+    for _, v in ipairs(workspace.Playability.Enemys[IslandMon]:GetChildren()) do
+        if string.find(v.Name, NameMon) and v:FindFirstChild("HumanoidRootPart") and (v.HumanoidRootPart.Position - pos.Position).Magnitude <= 350 then
+            if v:FindFirstChildOfClass("Humanoid") then
+                local humanoid = v.Humanoid
+                if humanoid:FindFirstChild("Animator") then
+                    humanoid.Animator:Destroy()
+                end
+
+                if MagX(v.HumanoidRootPart) then
+                    v.HumanoidRootPart.CFrame = pos
+                    humanoid.JumpPower = 0
+                    humanoid.WalkSpeed = 0
+                    humanoid.Sit = true    
+                    humanoid.PlatformStand = true
+                    humanoid:ChangeState(11)
+                    for _, part in ipairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                    sethiddenproperty(game:GetService("Players").LocalPlayer,"SimulationRadius",math.huge)
+                end
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    game:GetService("RunService").Stepped:Connect(function()
+        pcall(function()
+            if autoFarm or _G.NoClip  or autoTeleport then
+                if game.Players.LocalPlayer.Character:WaitForChild("Humanoid").Sit == true then
+                    game.Players.LocalPlayer.Character:WaitForChild("Humanoid").Sit = false
+                end
+                if not game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyVelocity1") then
+                    local BodyVelocity = Instance.new("BodyVelocity")
+                    BodyVelocity.Name = "BodyVelocity1"
+                    BodyVelocity.Parent =  game:GetService("Players").LocalPlayer.Character.HumanoidRootPart
+                    BodyVelocity.MaxForce = Vector3.new(10000,10000,10000)
+                    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                end
+                for i = 1, #game.Players.LocalPlayer.Character:GetChildren() do local v = game.Players.LocalPlayer.Character:GetChildren()[i]
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            else
+                if game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyVelocity1") then
+                    game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("BodyVelocity1"):Destroy()
+                end
+            end
+        end)
+    end)
+end) -- BodyClip
+
+local fast = require(game:GetService("ReplicatedStorage").MainModules.Combat.CombatHandler)
+game:GetService("RunService").RenderStepped:Connect(function ()
+	pcall(function ()
+		if fastattack then
+			fast.Tools.Combat.Cooldown.DelayTime = 0
+			game:GetService'VirtualUser':CaptureController()
+    		game:GetService'VirtualUser':Button1Down(Vector2.new(1280, 672))
+		end
+	end)
+end) -- fastAttack
+
+task.spawn(function()
+    while task.wait() do
+        pcall(function()
+            if autoFarm then
+                QuestCheck()
+                if not string.find(game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.CurrentQuest.Objective.Text, NameMon) then
+                    game:GetService("ReplicatedStorage").BetweenSides.Remotes.Events.QuestEvent:FireServer("CancelQuest")
+                end
+                if game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.CurrentQuest.Visible == false then
+                    game:GetService("ReplicatedStorage").BetweenSides.Remotes.Events.DialogueEvent:FireServer("Quests",{["NpcName"] = NpcName,["QuestName"] = QuestName})
+                elseif game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.CurrentQuest.Visible == true then
+                    QuestCheck()
+                    for i,v in pairs(workspace.Playability.Enemys[IslandMon]:GetChildren()) do
+                        if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                            if string.find(v.Name, NameMon) then
+                                repeat task.wait()
+                                    _G.NoClip = true
+                                    TweenFarm(v.HumanoidRootPart.CFrame * CFrame.new(0,6.5,0))
+                                    if (v.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude + 10 and v.Humanoid.Health > 0 then
+                                        EquipWeapon(selectWeapon)
+                                        Click()
+                                        fastattack = true
+                                    end
+                                    PosMon = v.HumanoidRootPart.CFrame
+                                    BringMob(v.HumanoidRootPart.CFrame)
+                                until not autoFarm or v.Humanoid.Health <= 0 or not v.Parent or game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.CurrentQuest.Visible == false
+                            end
+                        else
+                            fastattack = false
+                        end
+                    end
+                end
+            else
+                _G.NoClip = false
+                fastattack = false
+                TweenCanCle()
+            end
+        end)
+    end
+end) -- autoFarm
+
+task.spawn(function ()
+    while task.wait() do
+        pcall(function ()
+            if autoTeleport then
+                if selectMode == "Tween Mode" then
+                    for _,island in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+                        if island.Name == selectLocation then
+                            TweenToLocation(island.CFrame)
+                        end
+                    end
+                elseif selectMode == "Bypass Mode" then
+                    for _,island in pairs(workspace.IgnoreList.Portal:GetChildren()) do
+                        if island.Name == selectLocation and game.Players.LocalPlayer.Character.Humanoid.Health > 0 then
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = island.CFrame
+                            wait(1.75)
+                            game.Players.LocalPlayer.Character.Humanoid.Health = 0
+                        end
+                    end
+                end
+            else
+                TweenCanCleLocation()
+            end
+        end)
+    end
+end) -- teleport
+
+task.spawn(function ()
+    while task.wait() do
+        pcall(function ()
+            if addDefense then
+                game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("StatsEvent"):FireServer("UpgradeStat",{Defense = 1,})
+            end
+            if addSword then
+                game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("StatsEvent"):FireServer("UpgradeStat",{Sword = 1,})
+            end
+            if addGun then
+                game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("StatsEvent"):FireServer("UpgradeStat",{Gun = 1,})
+            end
+            if addStrength then
+                game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("StatsEvent"):FireServer("UpgradeStat",{Strength = 1,})
+            end
+            if addDevilFruit then
+                game:GetService("ReplicatedStorage"):WaitForChild("BetweenSides"):WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("StatsEvent"):FireServer("UpgradeStat",{DevilFruit = 1,})
+            end
+        end)
+    end
+end) -- stats
